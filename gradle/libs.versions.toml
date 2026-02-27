@@ -1,0 +1,13 @@
+[versions]
+agp = "8.2.2"
+appcompat = "1.7.0"
+gridlayout = "1.0.0"
+material = "1.12.0"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+
+[libraries]
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-gridlayout = { module = "androidx.gridlayout:gridlayout", version.ref = "gridlayout" }
+google-material = { module = "com.google.android.material:material", version.ref = "material" }
