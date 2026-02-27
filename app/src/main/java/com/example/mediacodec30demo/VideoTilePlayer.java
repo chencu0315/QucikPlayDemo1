@@ -151,6 +151,9 @@ public class VideoTilePlayer {
         private void decodeLoop(MediaExtractor extractor, MediaCodec codec) {
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
             boolean inputEos = false;
+            long renderedFrames = 0;
+            long firstPtsUs = -1L;
+            long firstRenderTimeNs = -1L;
 
             while (running) {
                 if (!inputEos) {
@@ -181,13 +184,36 @@ public class VideoTilePlayer {
 
                 int outputIndex = codec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US);
                 if (outputIndex >= 0) {
-                    boolean render = bufferInfo.size > 0;
-                    codec.releaseOutputBuffer(outputIndex, render);
+                    // On some devices, surface mode may report size == 0 for valid video frames.
+                    // Rendering should be decided by flags, not only by buffer size.
+                    boolean isCodecConfig =
+                            (bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
+                    boolean render = !isCodecConfig;
+                    if (render) {
+                        if (firstPtsUs < 0) {
+                            firstPtsUs = bufferInfo.presentationTimeUs;
+                            firstRenderTimeNs = System.nanoTime();
+                        }
+                        long frameTimeNs = firstRenderTimeNs
+                                + Math.max(0L, (bufferInfo.presentationTimeUs - firstPtsUs) * 1000L);
+                        codec.releaseOutputBuffer(outputIndex, frameTimeNs);
+                    } else {
+                        codec.releaseOutputBuffer(outputIndex, false);
+                    }
+
+                    if (render) {
+                        renderedFrames++;
+                        if ((renderedFrames & 0x7F) == 0) {
+                            Log.d(TAG, "Tile " + tileIndex + ": rendered frames=" + renderedFrames);
+                        }
+                    }
 
                     if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                         extractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
                         codec.flush();
                         inputEos = false;
+                        firstPtsUs = -1L;
+                        firstRenderTimeNs = -1L;
                     }
                 } else if (outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     // Output format updates are expected and can be ignored here.

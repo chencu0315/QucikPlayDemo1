@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MediaCodec 30 Demo</string>
-    <string name="status_template_preview">MediaCodec demo: 30 streams (5x6)</string>
-    <string name="status_template">MediaCodec demo: %1$d streams (5x6)</string>
+    <string name="status_template_preview">MediaCodec demo: 16/30 streams active (6x5)</string>
+    <string name="status_template">MediaCodec demo: %1$d/%2$d streams active (%3$dx%4$d)</string>
 </resources>
